@@ -15,6 +15,9 @@ public class ChatClient {
     private String server;
     private int port;
     private Socket sc;
+    BufferedReader in;
+    BufferedReader stdIn;
+    PrintWriter out;
     // --- Fim das variáveis relacionadas coma interface gráfica
 
     // Se for necessário adicionar variáveis ao objecto ChatClient, devem
@@ -67,6 +70,10 @@ public class ChatClient {
         // construtor, deve ser colocado aqui
         this.server = server;
         this.port = port;
+        this.sc = new Socket(server, port);
+        this.in = new BufferedReader(new InputStreamReader(sc.getInputStream()));
+        this.stdIn = new BufferedReader(new InputStreamReader(System.in));
+        this.out = new PrintWriter(sc.getOutputStream(), true);
 
 
     }
@@ -76,19 +83,21 @@ public class ChatClient {
     // na caixa de entrada
     public void newMessage(String message) throws IOException {
         // PREENCHER AQUI com código que envia a mensagem ao servidor
-        PrintWriter out = new PrintWriter(sc.getOutputStream(), true);
-        //BufferedReader in = new BufferedReader(new InputStreamReader(sc.getInputStream()));
-        //BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
-          out.println(message);
-          chatArea.append(message + '\n');
-
-
+        this.out.println(message);
+          //System.out.println("chegou\n");
+        chatArea.append(message+'\n');
     }
 
 
     // Método principal do objecto
     public void run() throws IOException {
-        sc = new Socket(server, port);
+
+        String tmp;
+        while(true){
+          tmp = this.in.readLine();
+          System.out.println("chegou\n");
+          chatArea.append("FROM SERVER: " + tmp + "\n");
+        }
 
 
 
