@@ -23,9 +23,6 @@ public class ChatClient {
     // Se for necessário adicionar variáveis ao objecto ChatClient, devem
     // ser colocadas aqui
 
-
-
-
     // Método a usar para acrescentar uma string à caixa de texto
     // * NÃO MODIFICAR *
     public void printMessage(final String message) {
