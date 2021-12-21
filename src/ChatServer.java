@@ -5,18 +5,26 @@ import java.nio.channels.*;
 import java.nio.charset.*;
 import java.util.*;
 
+
+enum STATE {
+	INIT,
+	OUTSIDE,
+	INSIDE
+}
+
 class User {
 	String Username;
 	SocketChannel sc;
 	String Message;
-	String State;
+	// String State;
+	STATE State;
 	String Room;
 
 	User(String Username, SocketChannel sc) {
 		this.Username = Username;
 		this.sc = sc;
 		this.Message = "";
-		this.State = "init";
+		this.State = STATE.INIT;
 		this.Room = null;
 	}
 }
@@ -100,7 +108,7 @@ public class ChatServer {
 						sc.configureBlocking(false);
 
 						// Register it with the selector, for reading
-						sc.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE, new User(null, sc));
+						sc.register(selector, SelectionKey.OP_READ, new User(null, sc));
 
 					} else if (key.isReadable()) {
 
@@ -186,15 +194,19 @@ public class ChatServer {
 
 		// Message is a command
 		if (Message.charAt(0) == '/' && Message.charAt(1) != '/') {
+
+			// Split the message at the first space char
+			String MessageSplited[] = Message.split(" ", 2);
+
 			switch (Message) {
 				case "/nick":
-					nick(Message, sc, key);
+					nick(MessageSplited[1], sc, key);
 					break;
 				case "/join":
-					join(Message, sc, key);
+					join(MessageSplited[1], sc, key);
 					break;
 				case "/priv":
-					priv(Message, sc, key);
+					priv(MessageSplited[1], sc, key);
 					break;
 				case "/leave":
 					leave(sc, key);
@@ -214,7 +226,7 @@ public class ChatServer {
 			if (Message.charAt(0) == '/' && Message.charAt(1) == '/')
 				Message = Message.substring(1); // remove the escaped '/'
 
-			if (sender.State.equals("INSIDE")) {
+			if (sender.State == STATE.INSIDE) {
 				String msg = "MESSAGE " + sender.Username + " " + Message;
 				notifyRoom(sender.Room, sender.Username, msg);
 			}
@@ -226,11 +238,11 @@ public class ChatServer {
 
 			User userToRemove = (User) key.attachment();
 
-			if (userToRemove.State.equals("INIT")) {
+			if (userToRemove.State == STATE.INIT) {
 				ListUsers.remove(userToRemove.Username);
 			}
 
-			else if (userToRemove.State.equals("INSIDE")) {
+			else if (userToRemove.State == STATE.INSIDE ) {
 				ListRooms.get(userToRemove.Room).currentUsers.remove(userToRemove);
 				ListUsers.remove(userToRemove.Username);
 
@@ -254,8 +266,28 @@ public class ChatServer {
 		sc.write(bb);
 	}
 
-	// TODO
-	static private void nick(String Message, SocketChannel sc, SelectionKey key) throws IOException {
+	static private void nick(String NewUserName, SocketChannel sc, SelectionKey key) throws IOException {
+
+		// UserName already used
+		if (ListUsers.containsKey(NewUserName)) {
+      sendMessage(sc,"ERROR" + System.lineSeparator());
+      return;
+		}
+
+		User currentUser = (USER) key.attachment();
+
+		String oldUserName = currentUser.Username;
+
+    currentUser.Username = NewUserName;
+
+		if (currentUser.State == STATE.INSIDE) {
+        String message = "NEWNICK " + oldUsername + " " + newUsername + System.lineSeparator();
+				ListRooms.get(currentUser.group).currentUsers.remove(oldUsername) ;
+				ListRooms.get(currentUser.group).currentUsers.add(NewUserName) ;
+				notifyRoom(currentUser.Room, currentUser.Username, message);
+		}
+
+    sendMessage(sc, "OK" + System.lineSeparator());
 	}
 
 	// TODO
