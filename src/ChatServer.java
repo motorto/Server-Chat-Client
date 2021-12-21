@@ -5,7 +5,6 @@ import java.nio.channels.*;
 import java.nio.charset.*;
 import java.util.*;
 
-
 enum STATE {
 	INIT,
 	OUTSIDE,
@@ -242,7 +241,7 @@ public class ChatServer {
 				ListUsers.remove(userToRemove.Username);
 			}
 
-			else if (userToRemove.State == STATE.INSIDE ) {
+			else if (userToRemove.State == STATE.INSIDE) {
 				ListRooms.get(userToRemove.Room).currentUsers.remove(userToRemove);
 				ListUsers.remove(userToRemove.Username);
 
@@ -270,28 +269,67 @@ public class ChatServer {
 
 		// UserName already used
 		if (ListUsers.containsKey(NewUserName)) {
-      sendMessage(sc,"ERROR" + System.lineSeparator());
-      return;
+			sendMessage(sc, "ERROR" + System.lineSeparator());
+			return;
 		}
 
-		User currentUser = (USER) key.attachment();
+		User currentUser = (User) key.attachment();
 
 		String oldUserName = currentUser.Username;
 
-    currentUser.Username = NewUserName;
+		currentUser.Username = NewUserName;
 
 		if (currentUser.State == STATE.INSIDE) {
-        String message = "NEWNICK " + oldUsername + " " + newUsername + System.lineSeparator();
-				ListRooms.get(currentUser.group).currentUsers.remove(oldUsername) ;
-				ListRooms.get(currentUser.group).currentUsers.add(NewUserName) ;
-				notifyRoom(currentUser.Room, currentUser.Username, message);
+			String message = "NEWNICK " + oldUserName + " " + NewUserName + System.lineSeparator();
+			notifyRoom(currentUser.Room, currentUser.Username, message);
 		}
 
-    sendMessage(sc, "OK" + System.lineSeparator());
+		sendMessage(sc, "OK" + System.lineSeparator());
 	}
 
 	// TODO
-	static private void join(String Message, SocketChannel sc, SelectionKey key) throws IOException {
+	static private void join(String RoomName, SocketChannel sc, SelectionKey key) throws IOException {
+		User userWantJoin = (User) key.attachment();
+
+		if (userWantJoin.State == STATE.INIT) {
+			sendMessage(sc, "ERROR" + System.lineSeparator());
+			return;
+		}
+
+		else {
+
+			// Room doesn't exist let's create one
+			if (!ListRooms.containsKey(RoomName)) {
+				ListRooms.put(RoomName, new Room(RoomName));
+			}
+
+			if (userWantJoin.State == STATE.OUTSIDE) {
+
+				ListRooms.get(RoomName).currentUsers.add(userWantJoin);
+				userWantJoin.Room = RoomName;
+
+				String message = "JOINED " + userWantJoin.Username + System.lineSeparator();
+				notifyRoom(RoomName, userWantJoin.Username, message);
+
+				userWantJoin.State = STATE.INSIDE;
+			}
+
+			else if (userWantJoin.State == STATE.INSIDE) {
+				ListRooms.get(userWantJoin.Room).currentUsers.remove(userWantJoin);
+
+				String message = "LEFT " + userWantJoin.Username + System.lineSeparator();
+				notifyRoom(userWantJoin.Room, userWantJoin.Username , message);
+
+				ListRooms.get(RoomName).currentUsers.add(userWantJoin);
+				userWantJoin.Room = RoomName;
+
+				message = "JOINED " + userWantJoin.Username + System.lineSeparator();
+				notifyRoom(userWantJoin.Room, userWantJoin.Username , message);
+
+			}
+
+			sendMessage(sc, "OK" + System.lineSeparator());
+		}
 	}
 
 	// TODO
