@@ -39,8 +39,8 @@ public class ChatServer {
 	static private final Charset charset = Charset.forName("UTF8");
 	static private final CharsetDecoder decoder = charset.newDecoder();
 
-	static private final Map<String,User> ListUsers = new HashMap<>();
-	static private final Map<String,Room> ListRooms = new HashMap<>();
+	static private final Map<String, User> ListUsers = new HashMap<>();
+	static private final Map<String, Room> ListRooms = new HashMap<>();
 
 	static public void main(String args[]) throws Exception {
 
@@ -111,7 +111,7 @@ public class ChatServer {
 
 							// It's incoming data on a connection -- process it
 							sc = (SocketChannel) key.channel();
-							boolean ok = processInput(sc);
+							boolean ok = processInput(sc, key);
 
 							// If the connection is dead, remove it from the selector
 							// and close it
@@ -155,7 +155,7 @@ public class ChatServer {
 	}
 
 	// Just read the message from the socket and send it to stdout
-	static private boolean processInput(SocketChannel sc) throws IOException {
+	static private boolean processInput(SocketChannel sc, SelectionKey key) throws IOException {
 		// Read the message to the buffer
 		buffer.clear();
 		sc.read(buffer);
@@ -168,13 +168,57 @@ public class ChatServer {
 
 		// Decode and print the message to stdout
 		String message = decoder.decode(buffer).toString();
-		System.out.println(message);
 
-		ByteBuffer out = ByteBuffer.wrap((message).getBytes());
-		while (out.hasRemaining())
-			sc.write(out);
-		System.out.println("Sent");
+		User current = (User) key.attachment();
+
+		if (message.charAt(message.length() - 1) != '\n') {
+			current.Message += message;
+			return true;
+		}
+
+		parseMessage(current.Message + message, sc, key);
+		current.Message = "";
+
 		return true;
+	}
+
+	static private void parseMessage(String Message, SocketChannel sc, SelectionKey key) throws IOException {
+
+		// Message is a command
+		if (Message.charAt(0) == '/' && Message.charAt(1) != '/') {
+			switch (Message) {
+				case "/nick":
+					nick(Message, sc, key);
+					break;
+				case "/join":
+					join(Message, sc, key);
+					break;
+				case "/priv":
+					priv(Message, sc, key);
+					break;
+				case "/leave":
+					leave(sc, key);
+					break;
+				case "/bye":
+					bye(sc, key);
+					break;
+				default:
+					sendMessage(sc, "ERROR" + System.lineSeparator());
+			}
+		}
+
+		// Is a normal message let's send it to the group
+		else {
+			User sender = (User) key.attachment();
+
+			if (Message.charAt(0) == '/' && Message.charAt(1) == '/')
+				Message = Message.substring(1); // remove the escaped '/'
+
+			if (sender.State.equals("INSIDE")) {
+				String msg = "MESSAGE " + sender.Username + " " + Message;
+				notifyRoom(sender.Room, sender.Username, msg);
+			}
+		}
 	}
 
 	static private void removeUser(SelectionKey key) throws IOException {
@@ -191,15 +235,15 @@ public class ChatServer {
 				ListUsers.remove(userToRemove.Username);
 
 				String exitMessage = "LEFT" + userToRemove.Username + System.lineSeparator();
-				notifyGroup(userToRemove.Room, userToRemove.Username, exitMessage);
+				notifyRoom(userToRemove.Room, userToRemove.Username, exitMessage);
 			}
 		}
 	}
 
-	static private void notifyGroup (String Room , String User, String Message ) throws IOException {
+	static private void notifyRoom(String Room, String User, String Message) throws IOException {
 		for (User tmp : ListRooms.get(Room).currentUsers) {
 			if (tmp.Username != User) {
-				sendMessage(ListUsers.get(tmp.Username).sc, Message );
+				sendMessage(ListUsers.get(tmp.Username).sc, Message);
 			}
 		}
 	}
@@ -210,5 +254,24 @@ public class ChatServer {
 		sc.write(bb);
 	}
 
+	// TODO
+	static private void nick(String Message, SocketChannel sc, SelectionKey key) throws IOException {
+	}
+
+	// TODO
+	static private void join(String Message, SocketChannel sc, SelectionKey key) throws IOException {
+	}
+
+	// TODO
+	static private void leave(SocketChannel sc, SelectionKey key) throws IOException {
+	}
+
+	// TODO
+	static private void priv(String Message, SocketChannel sc, SelectionKey key) throws IOException {
+	}
+
+	// TODO
+	static private void bye(SocketChannel sc, SelectionKey key) throws IOException {
+	}
 
 }
