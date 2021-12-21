@@ -287,7 +287,6 @@ public class ChatServer {
 		sendMessage(sc, "OK" + System.lineSeparator());
 	}
 
-	// TODO
 	static private void join(String RoomName, SocketChannel sc, SelectionKey key) throws IOException {
 		User userWantJoin = (User) key.attachment();
 
@@ -332,16 +331,41 @@ public class ChatServer {
 		}
 	}
 
-	// TODO
 	static private void leave(SocketChannel sc, SelectionKey key) throws IOException {
+    User userWantLeave = (User)key.attachment();
+
+    if (userWantLeave.State != STATE.INSIDE) {
+      sendMessage(sc, "ERROR" + System.lineSeparator());
+      return;
+    }
+
+		ListRooms.get(userWantLeave.Room).currentUsers.remove(userWantLeave);
+		userWantLeave.Room = null;
+		userWantLeave.State = STATE.OUTSIDE;
+
+    String message = "LEFT " + userWantLeave.Username + System.lineSeparator();
+		notifyRoom(userWantLeave.Room, userWantLeave.Username, message);
+
+    sendMessage(sc, "OK" + System.lineSeparator());
 	}
 
 	// TODO
 	static private void priv(String Message, SocketChannel sc, SelectionKey key) throws IOException {
 	}
 
-	// TODO
 	static private void bye(SocketChannel sc, SelectionKey key) throws IOException {
+    User current = (User)key.attachment();
+
+		if (current.State == STATE.INSIDE){
+			leave(sc, key);
+		}
+
+		if (ListUsers.containsKey(current.Username)){
+			ListUsers.remove(current.Username);
+		}
+
+    sendMessage(sc, "BYE" + System.lineSeparator());
+    sc.close();
 	}
 
 }
