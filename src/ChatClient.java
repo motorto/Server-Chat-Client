@@ -88,7 +88,6 @@ public class ChatClient {
 	}
 
 	// Método principal do objecto
-	// TODO:
 	public void run() throws IOException {
 		// PREENCHER AQUI
 		while (true) {

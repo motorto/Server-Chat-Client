@@ -5,6 +5,11 @@ import java.nio.channels.*;
 import java.nio.charset.*;
 import java.util.*;
 
+/*
+* TODO: Verify that the messages Errors and confirms are acording to 
+* what the teacher wants 
+*/
+
 enum STATE {
 	INIT,
 	OUTSIDE,
@@ -190,6 +195,20 @@ public class ChatServer {
 
 	static private void parseMessage(String Message, SocketChannel sc, SelectionKey key) throws IOException {
 
+		if(DEBUG){
+			System.out.println("Size da MENSAGEM: " + Message.length());
+		}
+
+		if (Message.length() < 2 ) {
+				sendMessage(sc, "ERROR" + System.lineSeparator());
+				return;
+		}
+
+		// Remove /n
+		if (Message.charAt(Message.length() - 1) == '\n') {
+			Message = Message.substring(0, Message.length() - 1);
+		}
+
 		// Message is a command
 		if (Message.charAt(0) == '/' && Message.charAt(1) != '/') {
 
@@ -230,7 +249,7 @@ public class ChatServer {
 				Message = Message.substring(1); // remove the escaped '/'
 
 			if (sender.State == STATE.INSIDE) {
-				String msg = "MESSAGE " + sender.Username + " " + Message;
+				String msg = "MESSAGE " + sender.Username + " " + Message + '\n';
 				notifyRoom(sender.Room, sender.Username, msg);
 			} else
 				sendMessage(sc, "NORMAL MESSAGE ERROR" + System.lineSeparator());
@@ -250,7 +269,7 @@ public class ChatServer {
 				ListRooms.get(userToRemove.Room).currentUsers.remove(userToRemove);
 				ListUsers.remove(userToRemove.Username);
 
-				String exitMessage = "LEFT" + userToRemove.Username + System.lineSeparator();
+				String exitMessage = "LEFT " + userToRemove.Username + System.lineSeparator();
 				notifyRoom(userToRemove.Room, userToRemove.Username, exitMessage);
 			}
 		}
@@ -302,14 +321,14 @@ public class ChatServer {
 			currentUser.State = STATE.OUTSIDE;
 		}
 
-		sendMessage(sc, "NICK OK" + System.lineSeparator());
+		sendMessage(sc, "OK" + System.lineSeparator());
 	}
 
 	static private void join(String RoomName, SocketChannel sc, SelectionKey key) throws IOException {
 		User userWantJoin = (User) key.attachment();
 
 		if (userWantJoin.State == STATE.INIT) {
-			sendMessage(sc, "JOIN ERROR" + System.lineSeparator());
+			sendMessage(sc, "ERROR" + System.lineSeparator());
 			return;
 		}
 
@@ -345,7 +364,7 @@ public class ChatServer {
 
 			}
 
-			sendMessage(sc, "JOIN OK" + System.lineSeparator());
+			sendMessage(sc, "OK" + System.lineSeparator());
 		}
 	}
 
@@ -353,18 +372,19 @@ public class ChatServer {
 		User userWantLeave = (User) key.attachment();
 
 		if (userWantLeave.State != STATE.INSIDE) {
-			sendMessage(sc, "LEAVE : ERROR" + System.lineSeparator());
+			sendMessage(sc, "ERROR" + System.lineSeparator());
 			return;
 		}
 
-		ListRooms.get(userWantLeave.Room).currentUsers.remove(userWantLeave);
-		userWantLeave.Room = null;
-		userWantLeave.State = STATE.OUTSIDE;
 
 		String message = "LEFT " + userWantLeave.Username + System.lineSeparator();
 		notifyRoom(userWantLeave.Room, userWantLeave.Username, message);
 
-		sendMessage(sc, "LEAVE OK" + System.lineSeparator());
+		ListRooms.get(userWantLeave.Room).currentUsers.remove(userWantLeave);
+		userWantLeave.State = STATE.OUTSIDE;
+		userWantLeave.Room = null;
+
+		sendMessage(sc, "OK" + System.lineSeparator());
 	}
 
 	static private void priv(String Message, SocketChannel sc, SelectionKey key) throws IOException {
@@ -373,7 +393,7 @@ public class ChatServer {
 		User sender = (User) key.attachment();
 
 		if (sender.State == STATE.INIT) {
-			sendMessage(sc, "PRIV ERROR" + System.lineSeparator());
+			sendMessage(sc, "ERROR" + System.lineSeparator());
 			return;
 		}
 
