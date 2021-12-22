@@ -38,6 +38,7 @@ class Room {
 }
 
 public class ChatServer {
+	private static final boolean DEBUG = true;
 	// A pre-allocated buffer for the received data
 	static private final ByteBuffer buffer = ByteBuffer.allocate(16384);
 
@@ -192,10 +193,21 @@ public class ChatServer {
 		// Message is a command
 		if (Message.charAt(0) == '/' && Message.charAt(1) != '/') {
 
-			// Split the message at the first space char
 			String MessageSplited[] = Message.split(" ", 2);
 
+			if (DEBUG) {
+				for (String tmp : MessageSplited) {
+					System.out.println(tmp);
+				}
+			}
+
 			switch (MessageSplited[0]) {
+				case "/leave":
+					leave(sc, key);
+					break;
+				case "/bye":
+					bye(sc, key);
+					break;
 				case "/nick":
 					nick(MessageSplited[1], sc, key);
 					break;
@@ -205,14 +217,8 @@ public class ChatServer {
 				case "/priv":
 					priv(MessageSplited[1], sc, key);
 					break;
-				case "/leave":
-					leave(sc, key);
-					break;
-				case "/bye":
-					bye(sc, key);
-					break;
 				default:
-					sendMessage(sc, "ERROR" + System.lineSeparator());
+					sendMessage(sc, "SPLIT: ERROR" + System.lineSeparator());
 			}
 		}
 
@@ -226,9 +232,8 @@ public class ChatServer {
 			if (sender.State == STATE.INSIDE) {
 				String msg = "MESSAGE " + sender.Username + " " + Message;
 				notifyRoom(sender.Room, sender.Username, msg);
-			}
-			else 
-        sendMessage(sc, "ERROR" + System.lineSeparator());
+			} else
+				sendMessage(sc, "NORMAL MESSAGE ERROR" + System.lineSeparator());
 		}
 	}
 
@@ -267,9 +272,16 @@ public class ChatServer {
 
 	static private void nick(String NewUserName, SocketChannel sc, SelectionKey key) throws IOException {
 
+		if (DEBUG) {
+			System.out.println("Recebi este NewUsername: " + NewUserName);
+		}
+
 		// UserName already used
 		if (ListUsers.containsKey(NewUserName)) {
-			sendMessage(sc, "ERROR" + System.lineSeparator());
+			if (DEBUG) {
+				System.out.println("NICK ERROR, USERNAME " + NewUserName + " Is Already Taken");
+			}
+			sendMessage(sc, "NICK ERROR" + System.lineSeparator());
 			return;
 		}
 
@@ -277,21 +289,27 @@ public class ChatServer {
 
 		String oldUserName = currentUser.Username;
 
+		ListUsers.remove(oldUserName);
+
 		currentUser.Username = NewUserName;
+
+		ListUsers.put(NewUserName, currentUser);
 
 		if (currentUser.State == STATE.INSIDE) {
 			String message = "NEWNICK " + oldUserName + " " + NewUserName + System.lineSeparator();
 			notifyRoom(currentUser.Room, currentUser.Username, message);
+		} else {
+			currentUser.State = STATE.OUTSIDE;
 		}
 
-		sendMessage(sc, "OK" + System.lineSeparator());
+		sendMessage(sc, "NICK OK" + System.lineSeparator());
 	}
 
 	static private void join(String RoomName, SocketChannel sc, SelectionKey key) throws IOException {
 		User userWantJoin = (User) key.attachment();
 
 		if (userWantJoin.State == STATE.INIT) {
-			sendMessage(sc, "ERROR" + System.lineSeparator());
+			sendMessage(sc, "JOIN ERROR" + System.lineSeparator());
 			return;
 		}
 
@@ -327,7 +345,7 @@ public class ChatServer {
 
 			}
 
-			sendMessage(sc, "OK" + System.lineSeparator());
+			sendMessage(sc, "JOIN OK" + System.lineSeparator());
 		}
 	}
 
@@ -335,7 +353,7 @@ public class ChatServer {
 		User userWantLeave = (User) key.attachment();
 
 		if (userWantLeave.State != STATE.INSIDE) {
-			sendMessage(sc, "ERROR" + System.lineSeparator());
+			sendMessage(sc, "LEAVE : ERROR" + System.lineSeparator());
 			return;
 		}
 
@@ -346,7 +364,7 @@ public class ChatServer {
 		String message = "LEFT " + userWantLeave.Username + System.lineSeparator();
 		notifyRoom(userWantLeave.Room, userWantLeave.Username, message);
 
-		sendMessage(sc, "OK" + System.lineSeparator());
+		sendMessage(sc, "LEAVE OK" + System.lineSeparator());
 	}
 
 	static private void priv(String Message, SocketChannel sc, SelectionKey key) throws IOException {
@@ -355,7 +373,7 @@ public class ChatServer {
 		User sender = (User) key.attachment();
 
 		if (sender.State == STATE.INIT) {
-			sendMessage(sc, "ERROR" + System.lineSeparator());
+			sendMessage(sc, "PRIV ERROR" + System.lineSeparator());
 			return;
 		}
 
