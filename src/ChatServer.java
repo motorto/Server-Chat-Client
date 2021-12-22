@@ -15,7 +15,6 @@ class User {
 	String Username;
 	SocketChannel sc;
 	String Message;
-	// String State;
 	STATE State;
 	String Room;
 
@@ -106,7 +105,7 @@ public class ChatServer {
 						SocketChannel sc = s.getChannel();
 						sc.configureBlocking(false);
 
-						// Register it with the selector, for reading
+						// Register it with the selector, for reading and the new user
 						sc.register(selector, SelectionKey.OP_READ, new User(null, sc));
 
 					} else if (key.isReadable()) {
@@ -196,7 +195,7 @@ public class ChatServer {
 			// Split the message at the first space char
 			String MessageSplited[] = Message.split(" ", 2);
 
-			switch (Message) {
+			switch (MessageSplited[0]) {
 				case "/nick":
 					nick(MessageSplited[1], sc, key);
 					break;
@@ -228,6 +227,8 @@ public class ChatServer {
 				String msg = "MESSAGE " + sender.Username + " " + Message;
 				notifyRoom(sender.Room, sender.Username, msg);
 			}
+			else 
+        sendMessage(sc, "ERROR" + System.lineSeparator());
 		}
 	}
 
