@@ -400,7 +400,7 @@ public class ChatServer {
 		// First position is recepient, second position is message
 		String MessageSplited[] = Message.split(" ", 2);
 
-		String messageToSend = "PRIVATE " + sender.Username + " " + MessageSplited[1];
+		String messageToSend = "PRIVATE " + sender.Username + " " + MessageSplited[1] + '\n';
 
 		sendMessage(ListUsers.get(MessageSplited[0]).sc, messageToSend);
 	}
