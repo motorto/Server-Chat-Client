@@ -112,7 +112,6 @@ public class ChatServer {
 					} else if (key.isReadable()) {
 
 						SocketChannel sc = null;
-						System.out.println("Got channel for reading");
 
 						try {
 
@@ -317,13 +316,13 @@ public class ChatServer {
 				ListRooms.get(userWantJoin.Room).currentUsers.remove(userWantJoin);
 
 				String message = "LEFT " + userWantJoin.Username + System.lineSeparator();
-				notifyRoom(userWantJoin.Room, userWantJoin.Username , message);
+				notifyRoom(userWantJoin.Room, userWantJoin.Username, message);
 
 				ListRooms.get(RoomName).currentUsers.add(userWantJoin);
 				userWantJoin.Room = RoomName;
 
 				message = "JOINED " + userWantJoin.Username + System.lineSeparator();
-				notifyRoom(userWantJoin.Room, userWantJoin.Username , message);
+				notifyRoom(userWantJoin.Room, userWantJoin.Username, message);
 
 			}
 
@@ -332,40 +331,54 @@ public class ChatServer {
 	}
 
 	static private void leave(SocketChannel sc, SelectionKey key) throws IOException {
-    User userWantLeave = (User)key.attachment();
+		User userWantLeave = (User) key.attachment();
 
-    if (userWantLeave.State != STATE.INSIDE) {
-      sendMessage(sc, "ERROR" + System.lineSeparator());
-      return;
-    }
+		if (userWantLeave.State != STATE.INSIDE) {
+			sendMessage(sc, "ERROR" + System.lineSeparator());
+			return;
+		}
 
 		ListRooms.get(userWantLeave.Room).currentUsers.remove(userWantLeave);
 		userWantLeave.Room = null;
 		userWantLeave.State = STATE.OUTSIDE;
 
-    String message = "LEFT " + userWantLeave.Username + System.lineSeparator();
+		String message = "LEFT " + userWantLeave.Username + System.lineSeparator();
 		notifyRoom(userWantLeave.Room, userWantLeave.Username, message);
 
-    sendMessage(sc, "OK" + System.lineSeparator());
+		sendMessage(sc, "OK" + System.lineSeparator());
 	}
 
-	// TODO
 	static private void priv(String Message, SocketChannel sc, SelectionKey key) throws IOException {
+
+		// Verify Sender is valid
+		User sender = (User) key.attachment();
+
+		if (sender.State == STATE.INIT) {
+			sendMessage(sc, "ERROR" + System.lineSeparator());
+			return;
+		}
+
+		// First position is recepient, second position is message
+		String MessageSplited[] = Message.split(" ", 2);
+
+		String messageToSend = "PRIVATE " + sender.Username + " " + MessageSplited[1];
+
+		sendMessage(ListUsers.get(MessageSplited[0]).sc, messageToSend);
 	}
 
 	static private void bye(SocketChannel sc, SelectionKey key) throws IOException {
-    User current = (User)key.attachment();
+		User current = (User) key.attachment();
 
-		if (current.State == STATE.INSIDE){
+		if (current.State == STATE.INSIDE) {
 			leave(sc, key);
 		}
 
-		if (ListUsers.containsKey(current.Username)){
+		if (ListUsers.containsKey(current.Username)) {
 			ListUsers.remove(current.Username);
 		}
 
-    sendMessage(sc, "BYE" + System.lineSeparator());
-    sc.close();
+		sendMessage(sc, "BYE" + System.lineSeparator());
+		sc.close();
 	}
 
 }

@@ -1,6 +1,11 @@
 #/bin/sh 
 
-rm -rf *.javac && javac -d . src/ChatClient.java  && javac -d . src/ChatServer.java
+if [ "$1" = "c" ]; then 
+	rm -rf *.class
+	exit
+fi
+
+rm -rf *.class && javac -d . src/ChatClient.java  && javac -d . src/ChatServer.java
  
 if [ "$#" -eq 2 ]; then
 	if [ "$1" = "run" ]; then 
