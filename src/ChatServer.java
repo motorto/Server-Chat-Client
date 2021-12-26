@@ -6,7 +6,7 @@ import java.nio.charset.*;
 import java.util.*;
 
 /*
-* TODO: Verify that the messages Errors and confirms are acording to what the teacher wants 
+* TODO: Verify that the messages Errors and confirms are acording to what the teacher wants
 */
 
 enum STATE {
@@ -242,12 +242,24 @@ public class ChatServer {
 					bye(sc, key);
 					break;
 				case "/nick":
+					if(MessageSplited.length < 2){
+						sendMessage(sc, "ERROR" + System.lineSeparator());
+						break;
+					}
 					nick(MessageSplited[1], sc, key);
 					break;
 				case "/join":
+					if(MessageSplited.length < 2){
+						sendMessage(sc, "ERROR" + System.lineSeparator());
+						break;
+					}
 					join(MessageSplited[1], sc, key);
 					break;
 				case "/priv":
+					if(MessageSplited.length < 2){
+						sendMessage(sc, "ERROR" + System.lineSeparator());
+						break;
+					}
 					priv(MessageSplited[1], sc, key);
 					break;
 				default:
@@ -304,7 +316,6 @@ public class ChatServer {
 	}
 
 	static private void nick(String NewUserName, SocketChannel sc, SelectionKey key) throws IOException {
-
 		if (DEBUG) {
 			System.out.println("Recebi este NewUsername: " + NewUserName);
 		}
@@ -413,6 +424,11 @@ public class ChatServer {
 
 		// First position is recepient, second position is message
 		String MessageSplited[] = Message.split(" ", 2);
+
+		if(MessageSplited.length != 2){
+			sendMessage(sc, "ERROR" + System.lineSeparator());
+			return;
+		}
 
 		String messageToSend = "PRIVATE " + sender.Username + " " + MessageSplited[1] + '\n';
 
