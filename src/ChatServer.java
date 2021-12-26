@@ -5,10 +5,6 @@ import java.nio.channels.*;
 import java.nio.charset.*;
 import java.util.*;
 
-/*
-* TODO: Verify that the messages Errors and confirms are acording to what the teacher wants
-*/
-
 enum STATE {
 	INIT,
 	OUTSIDE,
@@ -20,14 +16,14 @@ class User {
 	SocketChannel sc;
 	String Message;
 	STATE State;
-	String Room; // Isto não é ncessario
+	String RoomIdentifier; 
 
 	User(String Username, SocketChannel sc) {
 		this.Username = Username;
 		this.sc = sc;
 		this.Message = "";
 		this.State = STATE.INIT;
-		this.Room = null;
+		this.RoomIdentifier = null;
 	}
 }
 
@@ -42,7 +38,6 @@ class Room {
 }
 
 public class ChatServer {
-	private static final boolean DEBUG = true;
 	// A pre-allocated buffer for the received data
 	static private final ByteBuffer buffer = ByteBuffer.allocate(16384);
 
@@ -194,10 +189,6 @@ public class ChatServer {
 
 	static private void parseMessage(String Message, SocketChannel sc, SelectionKey key) throws IOException {
 
-		if (DEBUG) {
-			System.out.println("Size da MENSAGEM: " + Message.length());
-		}
-
 		// Case that the message only includes '\n'
 		if (Message.length() < 2) {
 			return;
@@ -213,28 +204,7 @@ public class ChatServer {
 
 			String MessageSplited[] = Message.split(" ", 2);
 
-			if (DEBUG) {
-				for (String tmp : MessageSplited) {
-					System.out.println(tmp);
-				}
-			}
-
 			switch (MessageSplited[0]) {
-				// -----------------------------
-
-				// TODO: ISTO é DEBUG REMOVER DEPOIS
-				case "/State":
-				case "/state":
-					if (DEBUG) {
-						System.out.println("------");
-						User tmp = (User) key.attachment();
-						System.out.println("MY STATE IS: " + tmp.State.toString());
-						System.out.println("------");
-					}
-					break;
-
-				// -----------------------------
-
 				case "/leave":
 					leave(sc, key, false);
 					break;
@@ -276,7 +246,7 @@ public class ChatServer {
 
 			if (sender.State == STATE.INSIDE) {
 				String msg = "MESSAGE " + sender.Username + " " + Message + '\n';
-				notifyRoom(sender.Room, sender.Username, msg);
+				notifyRoom(sender.RoomIdentifier, sender.Username, msg);
 			} else
 				sendMessage(sc, "ERROR" + System.lineSeparator());
 		}
@@ -292,11 +262,11 @@ public class ChatServer {
 			}
 
 			else if (userToRemove.State == STATE.INSIDE) {
-				ListRooms.get(userToRemove.Room).currentUsers.remove(userToRemove);
+				ListRooms.get(userToRemove.RoomIdentifier).currentUsers.remove(userToRemove);
 				ListUsers.remove(userToRemove.Username);
 
 				String exitMessage = "LEFT " + userToRemove.Username + System.lineSeparator();
-				notifyRoom(userToRemove.Room, userToRemove.Username, exitMessage);
+				notifyRoom(userToRemove.RoomIdentifier, userToRemove.Username, exitMessage);
 			}
 		}
 	}
@@ -316,16 +286,10 @@ public class ChatServer {
 	}
 
 	static private void nick(String NewUserName, SocketChannel sc, SelectionKey key) throws IOException {
-		if (DEBUG) {
-			System.out.println("Recebi este NewUsername: " + NewUserName);
-		}
 
 		// UserName already used
 		if (ListUsers.containsKey(NewUserName)) {
-			if (DEBUG) {
-				System.out.println("NICK ERROR, USERNAME " + NewUserName + " Is Already Taken");
-			}
-			sendMessage(sc, "NICK ERROR" + System.lineSeparator());
+			sendMessage(sc, "ERROR" + System.lineSeparator());
 			return;
 		}
 
@@ -341,7 +305,7 @@ public class ChatServer {
 
 		if (currentUser.State == STATE.INSIDE) {
 			String message = "NEWNICK " + oldUserName + " " + NewUserName + System.lineSeparator();
-			notifyRoom(currentUser.Room, currentUser.Username, message);
+			notifyRoom(currentUser.RoomIdentifier, currentUser.Username, message);
 		} else {
 			currentUser.State = STATE.OUTSIDE;
 		}
@@ -367,7 +331,7 @@ public class ChatServer {
 			if (userWantJoin.State == STATE.OUTSIDE) {
 
 				ListRooms.get(RoomName).currentUsers.add(userWantJoin);
-				userWantJoin.Room = RoomName;
+				userWantJoin.RoomIdentifier = RoomName;
 
 				String message = "JOINED " + userWantJoin.Username + System.lineSeparator();
 				notifyRoom(RoomName, userWantJoin.Username, message);
@@ -380,10 +344,10 @@ public class ChatServer {
 				leave(sc, key, true);
 
 				ListRooms.get(RoomName).currentUsers.add(userWantJoin);
-				userWantJoin.Room = RoomName;
+				userWantJoin.RoomIdentifier = RoomName;
 
 				String message = "JOINED " + userWantJoin.Username + System.lineSeparator();
-				notifyRoom(userWantJoin.Room, userWantJoin.Username, message);
+				notifyRoom(userWantJoin.RoomIdentifier, userWantJoin.Username, message);
 
 			}
 
@@ -400,13 +364,13 @@ public class ChatServer {
 		}
 
 		String message = "LEFT " + userWantLeave.Username + System.lineSeparator();
-		notifyRoom(userWantLeave.Room, userWantLeave.Username, message);
+		notifyRoom(userWantLeave.RoomIdentifier, userWantLeave.Username, message);
 
-		ListRooms.get(userWantLeave.Room).currentUsers.remove(userWantLeave);
+		ListRooms.get(userWantLeave.RoomIdentifier).currentUsers.remove(userWantLeave);
 
 		if (!leavingToNewRoom) {
 			userWantLeave.State = STATE.OUTSIDE;
-			userWantLeave.Room = null;
+			userWantLeave.RoomIdentifier = null;
 		}
 
 		sendMessage(sc, "OK" + System.lineSeparator());
