@@ -6,8 +6,7 @@ import java.nio.charset.*;
 import java.util.*;
 
 /*
-* TODO: Verify that the messages Errors and confirms are acording to 
-* what the teacher wants 
+* TODO: Verify that the messages Errors and confirms are acording to what the teacher wants 
 */
 
 enum STATE {
@@ -21,7 +20,7 @@ class User {
 	SocketChannel sc;
 	String Message;
 	STATE State;
-	String Room;
+	String Room; // Isto não é ncessario
 
 	User(String Username, SocketChannel sc) {
 		this.Username = Username;
@@ -111,7 +110,7 @@ public class ChatServer {
 						SocketChannel sc = s.getChannel();
 						sc.configureBlocking(false);
 
-						// Register it with the selector, for reading and the new user
+						// Register it with the selector, for reading and attaching the new user
 						sc.register(selector, SelectionKey.OP_READ, new User(null, sc));
 
 					} else if (key.isReadable()) {
@@ -195,13 +194,13 @@ public class ChatServer {
 
 	static private void parseMessage(String Message, SocketChannel sc, SelectionKey key) throws IOException {
 
-		if(DEBUG){
+		if (DEBUG) {
 			System.out.println("Size da MENSAGEM: " + Message.length());
 		}
 
-		if (Message.length() < 2 ) {
-				sendMessage(sc, "ERROR" + System.lineSeparator());
-				return;
+		// Case that the message only includes '\n'
+		if (Message.length() < 2) {
+			return;
 		}
 
 		// Remove /n
@@ -221,8 +220,23 @@ public class ChatServer {
 			}
 
 			switch (MessageSplited[0]) {
+				// -----------------------------
+
+				// TODO: ISTO é DEBUG REMOVER DEPOIS
+				case "/State":
+				case "/state":
+					if (DEBUG) {
+						System.out.println("------");
+						User tmp = (User) key.attachment();
+						System.out.println("MY STATE IS: " + tmp.State.toString());
+						System.out.println("------");
+					}
+					break;
+
+				// -----------------------------
+
 				case "/leave":
-					leave(sc, key);
+					leave(sc, key, false);
 					break;
 				case "/bye":
 					bye(sc, key);
@@ -237,7 +251,7 @@ public class ChatServer {
 					priv(MessageSplited[1], sc, key);
 					break;
 				default:
-					sendMessage(sc, "SPLIT: ERROR" + System.lineSeparator());
+					sendMessage(sc, "ERROR" + System.lineSeparator());
 			}
 		}
 
@@ -252,7 +266,7 @@ public class ChatServer {
 				String msg = "MESSAGE " + sender.Username + " " + Message + '\n';
 				notifyRoom(sender.Room, sender.Username, msg);
 			} else
-				sendMessage(sc, "NORMAL MESSAGE ERROR" + System.lineSeparator());
+				sendMessage(sc, "ERROR" + System.lineSeparator());
 		}
 	}
 
@@ -351,15 +365,13 @@ public class ChatServer {
 			}
 
 			else if (userWantJoin.State == STATE.INSIDE) {
-				ListRooms.get(userWantJoin.Room).currentUsers.remove(userWantJoin);
 
-				String message = "LEFT " + userWantJoin.Username + System.lineSeparator();
-				notifyRoom(userWantJoin.Room, userWantJoin.Username, message);
+				leave(sc, key, true);
 
 				ListRooms.get(RoomName).currentUsers.add(userWantJoin);
 				userWantJoin.Room = RoomName;
 
-				message = "JOINED " + userWantJoin.Username + System.lineSeparator();
+				String message = "JOINED " + userWantJoin.Username + System.lineSeparator();
 				notifyRoom(userWantJoin.Room, userWantJoin.Username, message);
 
 			}
@@ -368,7 +380,7 @@ public class ChatServer {
 		}
 	}
 
-	static private void leave(SocketChannel sc, SelectionKey key) throws IOException {
+	static private void leave(SocketChannel sc, SelectionKey key, boolean leavingToNewRoom) throws IOException {
 		User userWantLeave = (User) key.attachment();
 
 		if (userWantLeave.State != STATE.INSIDE) {
@@ -376,13 +388,15 @@ public class ChatServer {
 			return;
 		}
 
-
 		String message = "LEFT " + userWantLeave.Username + System.lineSeparator();
 		notifyRoom(userWantLeave.Room, userWantLeave.Username, message);
 
 		ListRooms.get(userWantLeave.Room).currentUsers.remove(userWantLeave);
-		userWantLeave.State = STATE.OUTSIDE;
-		userWantLeave.Room = null;
+
+		if (!leavingToNewRoom) {
+			userWantLeave.State = STATE.OUTSIDE;
+			userWantLeave.Room = null;
+		}
 
 		sendMessage(sc, "OK" + System.lineSeparator());
 	}
@@ -409,7 +423,7 @@ public class ChatServer {
 		User current = (User) key.attachment();
 
 		if (current.State == STATE.INSIDE) {
-			leave(sc, key);
+			leave(sc, key, false);
 		}
 
 		if (ListUsers.containsKey(current.Username)) {
