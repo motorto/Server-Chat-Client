@@ -30,8 +30,26 @@ public class ChatClient {
 
 	// Método a usar para acrescentar uma string à caixa de texto
 	// * NÃO MODIFICAR *
-	public void printMessage(final String message) {
-		chatArea.append(message);
+	public void printMessage(String message) {
+		if (message.charAt(message.length() - 1) == '\n') {
+            message = message.substring(0, message.length() - 1);
+        }
+		String[] MessageSplited = message.split(" ",3);
+    switch(MessageSplited[0]){
+      case "MESSAGE":
+        chatArea.append(MessageSplited[1] + ": " + MessageSplited[2] + "\n");
+        break;
+      case "JOINED":
+        chatArea.append(MessageSplited[1] + " entrou na sala.\n");
+        break;
+      case "NEWNICK":
+        chatArea.append(MessageSplited[1] + " passou a chamar-se " + MessageSplited[2] + "\n");
+				break;
+			case "PRIVATE":
+				chatArea.append("Mensagem privada de " + MessageSplited[1] + ": " + MessageSplited[2] + "\n");
+				break;
+			default: chatArea.append(message + "\n");
+    }
 	}
 
 	// Construtor
