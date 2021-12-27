@@ -206,7 +206,7 @@ public class ChatServer {
 
 			switch (MessageSplited[0]) {
 				case "/leave":
-					leave(sc, key, false);
+					leave(sc, key, false, false);
 					break;
 				case "/bye":
 					bye(sc, key);
@@ -273,9 +273,7 @@ public class ChatServer {
 
 	static private void notifyRoom(String Room, String User, String Message) throws IOException {
 		for (User tmp : ListRooms.get(Room).currentUsers) {
-			if (tmp.Username != User) {
-				sendMessage(ListUsers.get(tmp.Username).sc, Message);
-			}
+			sendMessage(ListUsers.get(tmp.Username).sc, Message);
 		}
 	}
 
@@ -329,24 +327,24 @@ public class ChatServer {
 
 			if (userWantJoin.State == STATE.OUTSIDE) {
 
-				ListRooms.get(RoomName).currentUsers.add(userWantJoin);
-				userWantJoin.CurrentRoomIdentifier = RoomName;
-
 				String message = "JOINED " + userWantJoin.Username + System.lineSeparator();
 				notifyRoom(RoomName, userWantJoin.Username, message);
+
+				ListRooms.get(RoomName).currentUsers.add(userWantJoin);
+				userWantJoin.CurrentRoomIdentifier = RoomName;
 
 				userWantJoin.State = STATE.INSIDE;
 			}
 
 			else if (userWantJoin.State == STATE.INSIDE) {
 
-				leave(sc, key, true);
-
-				ListRooms.get(RoomName).currentUsers.add(userWantJoin);
-				userWantJoin.CurrentRoomIdentifier = RoomName;
+				leave(sc, key, true, false);
 
 				String message = "JOINED " + userWantJoin.Username + System.lineSeparator();
 				notifyRoom(userWantJoin.CurrentRoomIdentifier, userWantJoin.Username, message);
+
+				ListRooms.get(RoomName).currentUsers.add(userWantJoin);
+				userWantJoin.CurrentRoomIdentifier = RoomName;
 
 			}
 
@@ -354,7 +352,8 @@ public class ChatServer {
 		}
 	}
 
-	static private void leave(SocketChannel sc, SelectionKey key, boolean leavingToNewRoom) throws IOException {
+	static private void leave(SocketChannel sc, SelectionKey key, boolean leavingToNewRoom, boolean bye)
+			throws IOException {
 		User userWantLeave = (User) key.attachment();
 
 		if (userWantLeave.State != STATE.INSIDE) {
@@ -362,17 +361,19 @@ public class ChatServer {
 			return;
 		}
 
+		ListRooms.get(userWantLeave.CurrentRoomIdentifier).currentUsers.remove(userWantLeave);
+
 		String message = "LEFT " + userWantLeave.Username + System.lineSeparator();
 		notifyRoom(userWantLeave.CurrentRoomIdentifier, userWantLeave.Username, message);
-
-		ListRooms.get(userWantLeave.CurrentRoomIdentifier).currentUsers.remove(userWantLeave);
 
 		if (!leavingToNewRoom) {
 			userWantLeave.State = STATE.OUTSIDE;
 			userWantLeave.CurrentRoomIdentifier = null;
 		}
 
-		sendMessage(sc, "OK" + System.lineSeparator());
+		if (!bye) {
+			sendMessage(sc, "OK" + System.lineSeparator());
+		}
 	}
 
 	static private void priv(String Message, SocketChannel sc, SelectionKey key) throws IOException {
@@ -399,14 +400,14 @@ public class ChatServer {
 	}
 
 	static private void bye(SocketChannel sc, SelectionKey key) throws IOException {
-		User current = (User) key.attachment();
+		User userLeaving = (User) key.attachment();
 
-		if (current.State == STATE.INSIDE) {
-			leave(sc, key, false);
+		if (userLeaving.State == STATE.INSIDE) {
+			leave(sc, key, false, true);
 		}
 
-		if (ListUsers.containsKey(current.Username)) {
-			ListUsers.remove(current.Username);
+		if (ListUsers.containsKey(userLeaving.Username)) {
+			ListUsers.remove(userLeaving.Username);
 		}
 
 		sendMessage(sc, "BYE" + System.lineSeparator());
