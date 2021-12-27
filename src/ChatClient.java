@@ -13,6 +13,9 @@ public class ChatClient {
 
 	// Variáveis relacionadas com a interface gráfica --- * NÃO MODIFICAR *
 	JFrame frame = new JFrame("Chat Client");
+	Color self = new Color(147, 183, 246);
+	Color other = new Color(111, 233, 88);
+	Color sv = new Color(254,0,0);
 	private JTextField chatBox = new JTextField();
 	private JTextArea chatArea = new JTextArea();
 	// --- Fim das variáveis relacionadas coma interface gráfica
@@ -30,26 +33,8 @@ public class ChatClient {
 
 	// Método a usar para acrescentar uma string à caixa de texto
 	// * NÃO MODIFICAR *
-	public void printMessage(String message) {
-		if (message.charAt(message.length() - 1) == '\n') {
-            message = message.substring(0, message.length() - 1);
-        }
-		String[] MessageSplited = message.split(" ",3);
-    switch(MessageSplited[0]){
-      case "MESSAGE":
-        chatArea.append(MessageSplited[1] + ": " + MessageSplited[2] + "\n");
-        break;
-      case "JOINED":
-        chatArea.append(MessageSplited[1] + " entrou na sala.\n");
-        break;
-      case "NEWNICK":
-        chatArea.append(MessageSplited[1] + " passou a chamar-se " + MessageSplited[2] + "\n");
-				break;
-			case "PRIVATE":
-				chatArea.append("Mensagem privada de " + MessageSplited[1] + ": " + MessageSplited[2] + "\n");
-				break;
-			default: chatArea.append(message + "\n");
-    }
+	public void printMessage(final String message) {
+		chatArea.append(message);
 	}
 
 	// Construtor
@@ -114,7 +99,7 @@ public class ChatClient {
 				sc.read(buffer);
 				buffer.flip();
 
-				printMessage(decoder.decode(buffer).toString());
+				printMessage(process(decoder.decode(buffer).toString()));
 
 			} catch (IOException ie) {
 				System.out.println("ERRO CLIENT: " + ie);
@@ -122,6 +107,40 @@ public class ChatClient {
 		}
 	}
 
+	public static String process(String message){
+		if (message.charAt(message.length() - 1) == '\n') {
+            message = message.substring(0, message.length() - 1);
+        }
+		String[] MessageSplited = message.split(" ",3);
+    switch(MessageSplited[0]){
+      case "MESSAGE":
+        message = MessageSplited[1] + ": " + MessageSplited[2] + "\n";
+        break;
+      case "JOINED":
+        message = MessageSplited[1] + " entrou na sala.\n";
+        break;
+      case "NEWNICK":
+        message = MessageSplited[1] + " passou a chamar-se " + MessageSplited[2] + "\n";
+				break;
+			case "NICK":
+				if(MessageSplited[1] == "ERROR"){
+					message = "Nickname não disponível\n";
+					break;
+				}
+				else {
+					message = message + "\n";
+					break;
+				}
+			case "PRIVATE":
+				message = "Mensagem privada de " + MessageSplited[1] + ": " + MessageSplited[2] + "\n";
+				break;
+			case "LEFT":
+				message = MessageSplited[1] + " abandonou a sala\n";
+				break;
+			default: message = message + "\n";
+    }
+		return message;
+	}
 	// Instancia o ChatClient e arranca-o invocando o seu método run()
 	// * NÃO MODIFICAR *
 	public static void main(String[] args) throws IOException {
