@@ -73,8 +73,6 @@ public class ChatClient {
 		// Se for necessário adicionar código de inicialização ao
 		// construtor, deve ser colocado aqui
 
-		Thread t = new Thread();
-		t.run();
 		InetSocketAddress sa = new InetSocketAddress(server, port);
 		sc = SocketChannel.open(sa);
 
