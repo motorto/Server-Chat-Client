@@ -31,6 +31,8 @@ public class ChatClient {
 	static private final Charset charset = Charset.forName("UTF8");
 	static private final CharsetDecoder decoder = charset.newDecoder();
 
+	java.util.List avaliableCommands = Arrays.asList("/join", "/leave", "/bye", "/nick", "/priv");
+
 	// Método a usar para acrescentar uma string à caixa de texto
 	// * NÃO MODIFICAR *
 	public void printMessage(final String message) {
@@ -81,9 +83,17 @@ public class ChatClient {
 	// Método invocado sempre que o utilizador insere uma mensagem
 	// na caixa de entrada
 	public void newMessage(String message) throws IOException {
-		// PREENCHER AQUI com código que envia a mensagem ao servidor
 
 		buffer.clear();
+
+		// check if it is a command and its valid 
+		if (message.charAt(0) == '/' && message.charAt(1) != '/') {
+			String input[] = message.split(" ", 2);
+			if (!avaliableCommands.contains(input[0])) {
+				message = "/" + message ;
+			}
+		}
+
 		sc.write(charset.encode(message + '\n'));
 
 	}
