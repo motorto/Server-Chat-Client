@@ -69,9 +69,6 @@ public class ChatClient {
 		});
 		// --- Fim da inicialização da interface gráfica
 
-		// Se for necessário adicionar código de inicialização ao
-		// construtor, deve ser colocado aqui
-
 		InetSocketAddress sa = new InetSocketAddress(server, port);
 		sc = SocketChannel.open(sa);
 
@@ -83,11 +80,11 @@ public class ChatClient {
 
 		buffer.clear();
 
-		// check if it is a command and its valid 
+		// check if it is a command and its valid
 		if (message.charAt(0) == '/' && message.charAt(1) != '/') {
 			String input[] = message.split(" ", 2);
 			if (!avaliableCommands.contains(input[0])) {
-				message = "/" + message ;
+				message = "/" + message;
 			}
 		}
 
@@ -97,7 +94,6 @@ public class ChatClient {
 
 	// Método principal do objecto
 	public void run() throws IOException {
-		// PREENCHER AQUI
 		while (true) {
 			try {
 				buffer.clear();
@@ -112,7 +108,7 @@ public class ChatClient {
 		}
 	}
 
-	private static String processMessage(String message) {
+	private String processMessage(String message) {
 		if (message.length() < 2) {
 			return "";
 		}
@@ -143,6 +139,9 @@ public class ChatClient {
 				break;
 			case "LEFT":
 				message = MessageSplited[1] + " abandonou a sala\n";
+				break;
+			case "BYE":
+				frame.dispose();
 				break;
 			default:
 				message = message + "\n";

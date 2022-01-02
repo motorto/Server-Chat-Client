@@ -409,6 +409,7 @@ public class ChatServer {
 		}
 
 		sendMessage(sc, "BYE" + System.lineSeparator());
+		System.out.println("Closing connection to " + sc.socket());
 		sc.close();
 	}
 
