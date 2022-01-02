@@ -13,9 +13,6 @@ public class ChatClient {
 
 	// Variáveis relacionadas com a interface gráfica --- * NÃO MODIFICAR *
 	JFrame frame = new JFrame("Chat Client");
-	Color self = new Color(147, 183, 246);
-	Color other = new Color(111, 233, 88);
-	Color sv = new Color(254, 0, 0);
 	private JTextField chatBox = new JTextField();
 	private JTextArea chatArea = new JTextArea();
 	// --- Fim das variáveis relacionadas coma interface gráfica

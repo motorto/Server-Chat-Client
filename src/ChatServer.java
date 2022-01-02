@@ -16,7 +16,7 @@ class User {
 	SocketChannel sc;
 	String Message;
 	STATE State;
-	String CurrentRoomIdentifier; // Isto não é ncessario
+	String CurrentRoomIdentifier;
 
 	User(String Username, SocketChannel sc) {
 		this.Username = Username;
@@ -159,7 +159,6 @@ public class ChatServer {
 		}
 	}
 
-	// Just read the message from the socket and send it to stdout
 	static private boolean processInput(SocketChannel sc, SelectionKey key) throws IOException {
 		// Read the message to the buffer
 		buffer.clear();
@@ -171,18 +170,17 @@ public class ChatServer {
 			return false;
 		}
 
-		// Decode and print the message to stdout
 		String message = decoder.decode(buffer).toString();
 
-		User current = (User) key.attachment();
+		User currentUser = (User) key.attachment();
 
 		if (message.charAt(message.length() - 1) != '\n') {
-			current.Message += message;
+			currentUser.Message += message;
 			return true;
 		}
 
-		parseMessage(current.Message + message, sc, key);
-		current.Message = "";
+		parseMessage(currentUser.Message + message, sc, key);
+		currentUser.Message = "";
 
 		return true;
 	}
@@ -212,7 +210,7 @@ public class ChatServer {
 					bye(sc, key);
 					break;
 				case "/nick":
-					if (MessageSplited.length < 2) {
+					if (MessageSplited.length != 2) {
 						sendMessage(sc, "ERROR" + System.lineSeparator());
 						break;
 					}
